@@ -2,8 +2,11 @@ import { Hono } from 'hono';
 import { loadConfig, type RigConfig } from './config.js';
 import { lane } from './lane.js';
 import { readStatus } from './status.js';
+import { readNight } from './digest/reader.js';
+import { sortedRows } from './digest/rows.js';
 import { Layout } from './views/layout.js';
 import { StatusBoard } from './views/status.js';
+import { DigestBoard } from './views/digest.js';
 
 export function createApp(config: RigConfig = loadConfig()) {
   const app = new Hono();
@@ -17,6 +20,24 @@ export function createApp(config: RigConfig = loadConfig()) {
       </Layout>,
     ),
   );
+
+  const nightRows = (night: string) => {
+    try {
+      return sortedRows(readNight(config.runsDir, night));
+    } catch {
+      return null;
+    }
+  };
+
+  app.get('/digest/:night', (c) => {
+    const rows = nightRows(c.req.param('night'));
+    if (rows === null) return c.text('no log for that night', 404);
+    return c.html(
+      <Layout title={`digest · ${c.req.param('night')}`} lane={lane()}>
+        <DigestBoard rows={rows} />
+      </Layout>,
+    );
+  });
 
   return app;
 }
