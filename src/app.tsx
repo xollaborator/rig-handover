@@ -39,5 +39,11 @@ export function createApp(config: RigConfig = loadConfig()) {
     );
   });
 
+  app.get('/api/digest/:night', (c) => {
+    const rows = nightRows(c.req.param('night'));
+    if (rows === null) return c.json({ error: 'no log for that night' }, 404);
+    return c.json(rows);
+  });
+
   return app;
 }
